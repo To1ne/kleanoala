@@ -57,13 +57,12 @@ end
 
 get "/now" do
   content_type :json
-  info = Info.first || halt(500)
-  cleaners = Cleaner.all(order: :sequence) || halt(500)
+  info = Info.first || halt(404)
+  cleaners = Cleaner.all(order: :sequence) || halt(404)
 
   now = Time.now
   today = Time.new(now.year, now.month, now.day)
   offset = ((today - info.startdate.to_time) / ONE_WEEK) % cleaners.count
-  p cleaners
   @cleaner = cleaners[offset.to_i]
   @cleaner.to_json
 end
@@ -94,5 +93,5 @@ put "/cleaners" do
   info.updated = DateTime.now
   info.save!
 
-  redirect to("/get")
+  redirect to("/now")
 end
