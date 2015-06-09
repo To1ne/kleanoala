@@ -12,7 +12,12 @@ Which Koala's turn is it to clean up all the mess?
 
         heroku addons:create heroku-postgresql:hobby-dev
 
+## Setup
+
+* Set the list of cleaners (see `put.sh`)
 
 
+## Usage
 
+* Just visit `/now` and it will return the current cleaner
 
