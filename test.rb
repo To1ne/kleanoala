@@ -45,4 +45,44 @@ class KleanoalaTest < Test::Unit::TestCase
     assert @browser.last_response.ok?
     assert JSON.parse(@browser.last_response.body)
   end
+
+  def test_it_can_get_the_cleaner_for_next_week
+    @browser = Rack::Test::Session.new(Rack::MockSession.new(Sinatra::Application))
+
+    data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
+    basic_authorize "admin", ENV["ADMIN_PASSWORD"]
+    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+
+    @browser.get "/next"
+    assert @browser.last_response.ok?
+    assert JSON.parse(@browser.last_response.body)
+  end
+
+  def test_it_can_get_the_cleaner_for_week_x
+    @browser = Rack::Test::Session.new(Rack::MockSession.new(Sinatra::Application))
+
+    data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
+    basic_authorize "admin", ENV["ADMIN_PASSWORD"]
+    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+
+    [ 2, 3, 10, 100, 1000].each do |offset|
+      @browser.get "/next/#{offset}"
+      assert @browser.last_response.ok?
+      assert JSON.parse(@browser.last_response.body)
+    end
+  end
+
+  def test_it_returns_same_cleaner_for_week_1_and_next
+    @browser = Rack::Test::Session.new(Rack::MockSession.new(Sinatra::Application))
+
+    data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
+    basic_authorize "admin", ENV["ADMIN_PASSWORD"]
+    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+
+    @browser.get "/next"
+    val = JSON.parse(@browser.last_response.body)[:name]
+
+    @browser.get "/next/1"
+    assert_equal val, JSON.parse(@browser.last_response.body)[:name]
+  end
 end
