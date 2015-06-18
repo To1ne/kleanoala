@@ -22,7 +22,7 @@ class KleanoalaTest < Test::Unit::TestCase
   def test_it_cannot_set_cleaners_without_login
     @browser = Rack::Test::Session.new(Rack::MockSession.new(Sinatra::Application))
     data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
-    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+    @browser.put "/configure", data, "Content-Type" => "application/json"
     assert @browser.last_response.unauthorized?
   end
   
@@ -30,7 +30,7 @@ class KleanoalaTest < Test::Unit::TestCase
     @browser = Rack::Test::Session.new(Rack::MockSession.new(Sinatra::Application))
     data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
     basic_authorize "admin", ENV["ADMIN_PASSWORD"]
-    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+    @browser.put "/configure", data, "Content-Type" => "application/json"
     assert @browser.last_response.redirection?
   end
 
@@ -39,7 +39,7 @@ class KleanoalaTest < Test::Unit::TestCase
 
     data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
     basic_authorize "admin", ENV["ADMIN_PASSWORD"]
-    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+    @browser.put "/configure", data, "Content-Type" => "application/json"
 
     @browser.get "/now"
     assert @browser.last_response.ok?
@@ -51,7 +51,7 @@ class KleanoalaTest < Test::Unit::TestCase
 
     data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
     basic_authorize "admin", ENV["ADMIN_PASSWORD"]
-    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+    @browser.put "/configure", data, "Content-Type" => "application/json"
 
     @browser.get "/next"
     assert @browser.last_response.ok?
@@ -63,7 +63,7 @@ class KleanoalaTest < Test::Unit::TestCase
 
     data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
     basic_authorize "admin", ENV["ADMIN_PASSWORD"]
-    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+    @browser.put "/configure", data, "Content-Type" => "application/json"
 
     [ 2, 3, 10, 100, 1000].each do |offset|
       @browser.get "/next/#{offset}"
@@ -77,7 +77,7 @@ class KleanoalaTest < Test::Unit::TestCase
 
     data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
     basic_authorize "admin", ENV["ADMIN_PASSWORD"]
-    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+    @browser.put "/configure", data, "Content-Type" => "application/json"
 
     @browser.get "/next"
     val = JSON.parse(@browser.last_response.body)[:name]
