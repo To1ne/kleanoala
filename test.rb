@@ -33,4 +33,16 @@ class KleanoalaTest < Test::Unit::TestCase
     @browser.put "/cleaners", data, "Content-Type" => "application/json"
     assert @browser.last_response.redirection?
   end
+
+  def test_it_can_get_the_current_cleaner
+    @browser = Rack::Test::Session.new(Rack::MockSession.new(Sinatra::Application))
+
+    data = {startdate: "2015/12/25", cleaners: [ "one", "two", "three" ] }.to_json
+    basic_authorize "admin", ENV["ADMIN_PASSWORD"]
+    @browser.put "/cleaners", data, "Content-Type" => "application/json"
+
+    @browser.get "/now"
+    assert @browser.last_response.ok?
+    assert JSON.parse(@browser.last_response.body)
+  end
 end
