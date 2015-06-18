@@ -80,9 +80,27 @@ class KleanoalaTest < Test::Unit::TestCase
     @browser.put "/configure", data, "Content-Type" => "application/json"
 
     @browser.get "/next"
-    val = JSON.parse(@browser.last_response.body)[:name]
+    val = JSON.parse(@browser.last_response.body)["name"]
 
     @browser.get "/next/1"
-    assert_equal val, JSON.parse(@browser.last_response.body)[:name]
+    assert_equal val, JSON.parse(@browser.last_response.body)["name"]
+  end
+
+  def test_it_gives_everybody_a_turn
+    @browser = Rack::Test::Session.new(Rack::MockSession.new(Sinatra::Application))
+
+    everybody = { "one" => 1, "two" => 1, "three" => 1 }
+    data = {startdate: "2015/12/25", cleaners: everybody.keys }.to_json
+    basic_authorize "admin", ENV["ADMIN_PASSWORD"]
+    @browser.put "/configure", data, "Content-Type" => "application/json"
+
+    counter = 0
+    while everybody.has_value?(1) do
+      @browser.get "/next/#{counter}"
+      name = JSON.parse(@browser.last_response.body)["name"]
+      assert_equal 1, everybody[name]
+      everybody[name] -= 1
+      counter += 1
+    end
   end
 end
