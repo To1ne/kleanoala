@@ -50,21 +50,30 @@ end
 
 DataMapper.finalize.auto_upgrade!
 
-get "/" do 
-  content_type :json
-  redirect to("/now")
-end
-
-get "/now" do
+def respond_cleaner_for_week(week)
   content_type :json
   info = Info.first || halt(404)
   cleaners = Cleaner.all(order: :sequence) || halt(404)
 
   now = Time.now
   today = Time.new(now.year, now.month, now.day)
-  offset = ((today - info.startdate.to_time) / ONE_WEEK) % cleaners.count
-  @cleaner = cleaners[offset.to_i]
+  index = (((today - info.startdate.to_time) / ONE_WEEK) + week) % cleaners.count
+  @cleaner = cleaners[index.to_i]
   @cleaner.to_json
+end
+
+get "/" do 
+  content_type :json
+  redirect to("/now")
+end
+
+get "/now" do
+  respond_cleaner_for_week 0
+end
+
+get "/next/?:week?" do
+  week = params[:week] ? params[:week].to_i : 1
+  respond_cleaner_for_week week
 end
 
 put "/cleaners" do
