@@ -76,7 +76,7 @@ get "/next/?:week?" do
   respond_cleaner_for_week week
 end
 
-put "/cleaners" do
+put "/configure" do
   protected!
   content_type :json
   request.body.rewind  # in case someone already read it
