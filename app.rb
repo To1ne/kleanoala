@@ -15,7 +15,7 @@ helpers do
 
   def authorized?
     @auth ||= Rack::Auth::Basic::Request.new(request.env)
-    @auth.provided? and @auth.basic? and @auth.credentials and @auth.credentials == ["admin", ENV["ADMIN_PASSWORD"]]
+    @auth.provided? && @auth.basic? && @auth.credentials && @auth.credentials == ["admin", ENV["ADMIN_PASSWORD"]]
   end
 end
 
@@ -50,30 +50,41 @@ end
 
 DataMapper.finalize.auto_upgrade!
 
-def respond_cleaner_for_week(week)
-  content_type :json
+def cleaner_for_week(week)
   info = Info.first || halt(404)
-  cleaners = Cleaner.all(order: :sequence) || halt(404)
+  cleaners = Cleaner.all(:sequence.gte => 0, :order => :sequence) || halt(404)
 
   now = Time.now
   today = Time.new(now.year, now.month, now.day)
   index = (((today - info.startdate.to_time) / ONE_WEEK) + week) % cleaners.count
-  @cleaner = cleaners[index.to_i]
-  @cleaner.to_json
+  cleaners[index.to_i]
 end
 
-get "/" do 
+def parse_date(date)
+  if date.is_a? String
+    date = DateTime.strptime(date, "%Y/%m/%d") || halt(500)
+  end
+  date = date.to_date if date.is_a? DateTime
+  until date.wday == 1
+    date -= 1
+  end
+  date
+end
+
+get "/" do
   content_type :json
   redirect to("/now")
 end
 
 get "/now" do
-  respond_cleaner_for_week 0
+  content_type :json
+  cleaner_for_week(0).to_json
 end
 
 get "/next/?:week?" do
   week = params[:week] ? params[:week].to_i : 1
-  respond_cleaner_for_week week
+  content_type :json
+  cleaner_for_week(week).to_json
 end
 
 put "/configure" do
@@ -85,6 +96,7 @@ put "/configure" do
   # set all cleaners inactive
   Cleaner.each do |cleaner|
     cleaner.sequence = -1
+    cleaner.save!
   end
 
   # reorder the active cleaners
@@ -98,7 +110,44 @@ put "/configure" do
 
   # update the info
   info = Info.first_or_create
-  info.startdate = DateTime.strptime(data["startdate"], "%Y/%m/%d") || halt(500)
+  info.startdate = parse_date(data["startdate"])
+  info.updated = DateTime.now
+  info.save!
+  p Cleaner.all(:sequence.gte => 0, :order => :sequence)
+
+  redirect to("/now")
+end
+
+put "/push_front/:name" do
+  protected!
+  the_one = Cleaner.first(name: params[:name]) || halt(404)
+
+  first = cleaner_for_week(0)
+  count = Cleaner.last(order: :sequence)[:sequence]
+  # reorder cleaners so it starts from this week
+  cleaners = Cleaner.all(:sequence.gte => 0, :order => :sequence)
+  cleaners.all(:sequence.lt => first.sequence).each do |cleaner|
+    cleaner.sequence += count
+    cleaner.save
+  end
+  # reprogram the sequence numbers
+  sequence = 1
+  cleaners.all(order: :sequence).each do |cleaner|
+    p "cleaner: #{cleaner.id}. #{cleaner.name} #{cleaner.sequence} == #{the_one.id}"
+    if cleaner.id == the_one.id
+      cleaner.sequence = 0
+      cleaner.save!
+      next
+    end
+    cleaner.sequence = sequence
+    cleaner.save!
+    sequence += 1
+  end
+  p Cleaner.all(:sequence.gte => 0, :order => :sequence).map { |c| { c.name => c.sequence } }
+
+  # update the info
+  info = Info.first_or_create
+  info.startdate = parse_date(Time.now) || halt(500)
   info.updated = DateTime.now
   info.save!
 
